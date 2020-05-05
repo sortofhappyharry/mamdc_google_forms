@@ -1,8 +1,5 @@
-CLIENT_FILE = 'clients.csv'
-OLD_CLIENT_FILE = 'old_client_file.csv'
-
 get_client_data_v1 = function(ssid, sheet){
-  	old_form_data = read_sheet(real_ssid, sheet = sheet)
+  	old_form_data = read_sheet(ssid, sheet = sheet)
 
     old_client_data = old_form_data %>% select(name = `Full Name`,
                                        phone_number =  `Phone Number`,
@@ -88,10 +85,10 @@ get_client_data_v2 = function(ssid, sheet = NULL, data = NULL){
                                 filter(row_number()==1)
 
     ncd_pretty = ncd_pretty %>% mutate_at(c("nhd", "grocery_assistance",
-                                             "grocery_reason", "snap_benefits",
-                                             "adults", "children"),
+                                             "grocery_reason", "snap_benefits"),
                                               as.character) %>%
-                                mutate(phone_number = as.numeric(phone_number))
+                                mutate_at(c("phone_number", "adults", "children"),
+                                          as.numeric)
     	
     return(ncd_pretty)                               
 }
@@ -105,48 +102,48 @@ update_client_db = function(ssid, new_sheet_names = NULL, data = NULL, write = F
 
 	# Leave this in so that this function doesn't get called except when
 	         # really intended
-    flog.info("Updating client db")
+  flog.info("Updating client db")
 	ocd = read_csv(CLIENT_FILE)
 
 	flog.info("Made old client db")
     
-    if(is.null(data)){
-      ncd = tibble()
-      for(nm in new_sheet_names){
-        flog.info("Making new client db for sheet %s", nm)
-        new_data = get_client_data_v2(ssid, nm)
-        ncd = bind_rows(ncd, new_data)
-      }
-    } else {
-      ncd = data
+  if(is.null(data)){
+    ncd = tibble()
+    for(nm in new_sheet_names){
+      flog.info("Making new client db for sheet %s", nm)
+      new_data = get_client_data_v2(ssid, nm)
+      ncd = bind_rows(ncd, new_data)
     }
+  } else {
+    ncd = data
+  }
 
-    ncd = unique(ncd)
+  ncd = unique(ncd)
 
-    # for new data, want to check if they're already in old database
+  # for new data, want to check if they're already in old database
 
-    list = ncd %>% as.list() %>% `[`(.,c("name", "dob", "phone_number"))
+  list = ncd %>% as.list() %>% `[`(.,c("name", "dob", "phone_number"))
 
-    matches = pmap_dfr(list, function(name, dob, phone_number){
-    	                y= match_client(ocd, name, dob, phone_number)
-    	                y = mutate(y, phone_number =  as.numeric(phone_number))
-    	              })
+  matches = pmap_dfr(list, function(name, dob, phone_number){
+  	                y= match_client(ocd, name, dob, phone_number)
+  	                y = mutate(y, phone_number =  as.numeric(phone_number))
+  	              })
 
     ## if they're in old database, we still want to add on newer information if available to their DB entry
 
-    matched = bind_cols(ncd, matches %>% set_colnames(paste0(names(.), "_x"))) %>%
-              filter(!is.na(client_id_x)) %>%
-              mutate(name = coalesce(name, name_x),
-              	     phone_number = coalesce(phone_number, phone_number_x),
-              	     dob = coalesce(dob, dob_x),
-              	     email = coalesce(email, email_x),
-              	     address = coalesce(address, address_x),
-              	     nhd = coalesce(nhd, nhd_x)) %>%
-              select(all_of(names(ncd)), client_id = client_id_x)
+  matched = bind_cols(ncd, matches %>% magrittr::set_colnames(paste0(names(.), "_x"))) %>%
+            filter(!is.na(client_id_x)) %>%
+            mutate(name = coalesce(name, name_x),
+            	     phone_number = coalesce(phone_number, phone_number_x),
+            	     dob = coalesce(dob, dob_x),
+            	     email = coalesce(email, email_x),
+            	     address = coalesce(address, address_x),
+            	     nhd = coalesce(nhd, nhd_x)) %>%
+            select(all_of(names(ncd)), client_id = client_id_x)
 
-    matched = matched %>% group_by(client_id) %>% 
-                          filter(row_number()==1) %>%
-                          ungroup()
+  matched = matched %>% group_by(client_id) %>% 
+                        filter(row_number()==1) %>%
+                        ungroup()
 
     ##### Now find unique entries out of unmatched people and give them ids
 

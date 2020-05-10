@@ -18,20 +18,26 @@ get_client_data_v1 = function(ssid, sheet){
                                           mutate(dob = get_date(orig_dob)) %>%
                                           ungroup()
 
-    list = old_client_data %>% as.list() %>% `[`(.,c("name", "dob", "phone_number"))
+    old_client_data = old_client_data %>% mutate_if(is.character, ~ifelse(.x == "NULL", NA, .x))
 
-    clients = pmap_dfr(list, function(name, dob, phone_number){
-    	                y= match_client(old_client_data, name, dob, phone_number)
+    list = old_client_data %>% as.list() %>% `[`(.,c("name", "dob", "phone_number", "email"))
+
+    clients = pmap_dfr(list, function(name, dob, phone_number, email){
+    	                y= match_client(old_client_data, name, dob, phone_number, email)
     	                y = mutate_at(y, c("phone_number"), as.numeric)
     	              })
 
-    clients = clients %>% group_by(dob, phone_number) %>%
+    unique_clients = clients %>% group_by(dob, phone_number) %>%
                           filter(row_number() == 1) %>%
                           ungroup() %>%
                           mutate(client_id = paste0("X", row_number()),
                           	     phone_number = as.numeric(phone_number))
 
-    return(clients)
+    possible_duplicates = unique_clients %>% group_by(phone_number) %>% 
+                                             filter(n()>1) %>%
+                                             arrange(phone_number)
+
+    return(unique_clients)
 }
 
 initialize_old_client_db = function(ssid, sheet){
@@ -122,10 +128,10 @@ update_client_db = function(ssid, new_sheet_names = NULL, data = NULL, write = F
 
   # for new data, want to check if they're already in old database
 
-  list = ncd %>% as.list() %>% `[`(.,c("name", "dob", "phone_number"))
+  list = ncd %>% as.list() %>% `[`(.,c("name", "dob", "phone_number", "email"))
 
-  matches = pmap_dfr(list, function(name, dob, phone_number){
-  	                y= match_client(ocd, name, dob, phone_number)
+  matches = pmap_dfr(list, function(name, dob, phone_number, email){
+  	                y= match_client(ocd, name, dob, phone_number, email)
   	                y = mutate(y, phone_number =  as.numeric(phone_number))
   	              })
 
@@ -157,10 +163,10 @@ update_client_db = function(ssid, new_sheet_names = NULL, data = NULL, write = F
                                    first(x)
 	              	              })
 
-    list = unmatched %>% as.list() %>% `[`(.,c("name", "dob", "phone_number"))
+    list = unmatched %>% as.list() %>% `[`(.,c("name", "dob", "phone_number", "email"))
 
-    new_clients = pmap_dfr(list, function(name, dob, phone_number){
-    	                y= match_client(unmatched, name, dob, phone_number)
+    new_clients = pmap_dfr(list, function(name, dob, phone_number, email){
+    	                y= match_client(unmatched, name, dob, phone_number, email)
     	                y = mutate(y, phone_number =  as.numeric(phone_number))
     	              }) %>%
                   unique()

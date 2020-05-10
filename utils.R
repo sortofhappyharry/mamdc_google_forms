@@ -43,14 +43,15 @@ get_date = function(x){
                            "%Y-%m-%d",
                            "%Y/%m/%d")), error = function(e){NA})
 
-  if(!is.na(y) & year(y)<100){
-    y <- y + years(1900)
-  }
+  if(!is.na(y)){
+    res = year(y) %% 100
+    cent = floor(year(y)/100)
 
-  if(!is.na(y) & year(y) > 2020) {
-    y <- y - years(100)
-  }
+    ### Modify birth date so that it's between 1920 and 2020
 
+    centuries_to_add = (19 - cent) + as.numeric(res<20)
+    y <- y + years(100*centuries_to_add)
+  }
   y = as_date(y)
   return(y)
 }

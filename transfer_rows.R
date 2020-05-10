@@ -46,9 +46,9 @@ transfer_rows = function(ssid, intake_sheet, sheet_in_use, completed_tasks){
      names(a)[1:length(orig_names)] = orig_names
 
      sheet_append(ss = ssid, data = a, sheet = sheet_in_use)
-     } else {
+   } else {
      	flog.info("No new data, returning from function")
-     }
+   }
 
-  return()
+  return(TRUE)
 }

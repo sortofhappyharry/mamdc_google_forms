@@ -12,6 +12,8 @@ copy_url = "https://docs.google.com/spreadsheets/d/1oW9KMlelcXxWPEW-nXEAbL8dbqhI
 real_url = "https://docs.google.com/spreadsheets/d/1_vt2VwoPj7DUbGyjd3U8LP3ZOprAAlREwxFu2NeyRWM/edit#gid=542938029"
 CLIENT_FILE = 'clients.csv'
 OLD_CLIENT_FILE = 'old_client_file.csv'
+old_sheet_name = 'MAM DC Intake Response v1'
+new_sheet_name = 'MAM DC Intake Response v2'
 
 copy_ssid = as_sheets_id(copy_url)
 real_ssid = as_sheets_id(real_url)
@@ -20,8 +22,9 @@ real_ssid = as_sheets_id(real_url)
 
 # To initialize old database
 
-if(!exists())
-
+if(!any(grepl(OLD_CLIENT_FILE, list.files()))){
+	initialize_old_client_db(copy_ssid, old_sheet_name)
+}
 
 transfer_rows(copy_ssid,
               intake_sheet = "MAM DC Intake Response v2",

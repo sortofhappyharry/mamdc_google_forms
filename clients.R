@@ -4,7 +4,7 @@ get_client_data_v1 = function(ssid, sheet){
     old_client_data = old_form_data %>% select(name = `Full Name`,
                                        phone_number =  `Phone Number`,
                                        email = `Email Address`, 
-	                                   nhd = `What neighborhood or building do you live in? (i.e. Columbia Heights, Park View, Columbia Heights Village)`,
+	                                     nhd = `What neighborhood or building do you live in? (i.e. Columbia Heights, Park View, Columbia Heights Village)`,
                                        address = `Address (optional, but would be helpful)`,
                                        orig_dob = `What is your date of birth`) %>%
                                      mutate(email = as.character(email),
@@ -172,7 +172,8 @@ update_client_db = function(ssid, new_sheet_names = NULL, data = NULL, write = F
                   unique()
 
     id_ticker = ocd$client_id[grepl("Y", ocd$client_id)] %>%
-                              gsub("Y", "", .) %>% 
+                              gsub("Y", "", .) %>%
+                              as.numeric() %>%  
                               max(., na.rm = T)
 
     id_ticker = coalesce(as.numeric(id_ticker), as.numeric(0))
